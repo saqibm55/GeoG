@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width,
+      initial-scale=1.0,
+      maximum-scale=1.0,
+      user-scalable=no,
+      viewport-fit=cover">
+
+<title>Flag Rush - World Geography</title>
+
+<!-- YouTube Playables SDK Header Inclusion -->
+<script src="https://www.youtube.com/game_api/v1/ytgame.js"></script>
+
+<style>
+:root{
+    --bg:#06101d;
+    --panel:#122033;
+    --panel2:#1a2d44;
+    --button:#263b54;
+    --buttonHover:#304b69;
+
+    --cyan:#38bdf8;
+    --green:#22c55e;
+    --red:#ef4444;
+
+    --white:#fff;
+    --muted:#94a3b8;
+
+    --font:system-ui,-apple-system,BlinkMacSystemFont,
+            "Segoe UI",Roboto,Arial,sans-serif;
+}
+
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+
+    user-select:none;
+    -webkit-user-select:none;
+    -webkit-tap-highlight-color:transparent;
+}
+
+html,
+body{
+    width:100%;
+    height:100%;
+    overflow:hidden;
+
+    background:
+        radial-gradient(
+            circle at 50% 0%,
+            #163b5c 0%,
+            #071321 45%,
+            #02070d 100%
+        );
+
+    color:white;
+    font-family:var(--font);
+}
+
+body{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+/* ==============================
+   GAME LAYOUT & CONTAINER
+============================== */
+
+#game{
+    width:100vw;
+    height:100vh;
+    height:100dvh;
+
+    padding:
+        max(10px,env(safe-area-inset-top))
+        max(10px,env(safe-area-inset-right))
+        max(10px,env(safe-area-inset-bottom))
+        max(10px,env(safe-area-inset-left));
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.shell{
+    width:100%;
+    height:100%;
+
+    max-width:540px;
+    max-height:900px;
+
+    display:flex;
+    flex-direction:column;
+
+    gap:12px;
+}
+
+/* HUD */
+.hud{
+    flex:0 0 68px;
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    align-items:center;
+    background:linear-gradient(145deg, #1d3149, #101d2d);
+    border:1px solid rgba(255,255,255,.15);
+    border-radius:18px;
+    box-shadow:0 10px 30px rgba(0,0,0,.3);
+}
+
+.hudItem{ text-align:center; }
+.hudLabel{ display:block; color:var(--muted); font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:1px; }
+.hudValue{ display:block; margin-top:2px; color:var(--cyan); font-size:21px; font-weight:950; }
+
+/* STAGE & FLAG CARD */
+.stage{ flex:1; min-height:0; display:flex; flex-direction:column; gap:12px; }
+
+.flagCard{
+    position:relative;
+    flex:1.15;
+    min-height:210px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding:18px;
+    overflow:hidden;
+    background:linear-gradient(145deg, #1d3047, #101e2e);
+    border:1px solid rgba(255,255,255,.15);
+    border-radius:18px;
+    box-shadow:0 12px 35px rgba(0,0,0,.3);
+}
+
+.flagGlow{
+    position:absolute; width:250px; height:250px; left:-100px; top:-120px;
+    background:radial-gradient(circle, rgba(56,189,248,.14), transparent 70%);
+}
+
+.flagBox{
+    width:100%; height:155px; display:flex; align-items:center; justify-content:center; position:relative; z-index:2;
+}
+
+.flag{
+    max-width:92%; max-height:145px; width:auto; height:auto; object-fit:contain;
+    background:white; border-radius:8px; border:1px solid rgba(255,255,255,.3);
+    box-shadow:0 10px 25px rgba(0,0,0,.5);
+    animation:flagIn .3s ease;
+}
+
+@keyframes flagIn{
+    0%{ opacity:0; transform:scale(.7); }
+    70%{ transform:scale(1.05); }
+    100%{ opacity:1; transform:scale(1); }
+}
+
+.question{ position:relative; z-index:3; margin-top:10px; text-align:center; font-size:clamp(15px,2.5vw,20px); font-weight:900; line-height:1.25; }
+
+/* ANSWERS */
+.answers{ flex:1; min-height:190px; display:grid; grid-template-columns:repeat(2,1fr); grid-template-rows:repeat(2,1fr); gap:10px; }
+
+.answer{
+    min-width:0; min-height:0; padding:10px; border-radius:14px;
+    border:2px solid rgba(255,255,255,.15);
+    background:linear-gradient(145deg, #293f59, #1b2c40);
+    color:white; font-size:clamp(13px,2.5vw,17px); font-weight:850; cursor:pointer;
+    transition:transform .1s, background .15s, border-color .15s;
+}
+
+.answer:hover{ background:var(--buttonHover); border-color:rgba(56,189,248,.65); }
+.answer:active{ transform:scale(.95); }
+.answer:disabled{ cursor:default; }
+
+.answer.correct{
+    background:linear-gradient(145deg, #22c55e, #15803d) !important;
+    border-color:#4ade80 !important; animation:correct .3s ease;
+}
+
+.answer.wrong{
+    background:linear-gradient(145deg, #ef4444, #b91c1c) !important;
+    border-color:#f87171 !important; animation:shake .35s ease;
+}
+
+@keyframes correct{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.06); } }
+@keyframes shake{ 0%,100%{ transform:translateX(0); } 25%{ transform:translateX(-7px); } 50%{ transform:translateX(7px); } 75%{ transform:translateX(-4px); } }
+
+.feedback{
+    position:absolute; bottom:10px; left:50%; transform:translateX(-50%);
+    padding:7px 15px; border-radius:50px; font-size:12px; font-weight:900;
+    opacity:0; pointer-events:none; z-index:20; white-space:nowrap;
+}
+.feedback.show{ opacity:1; }
+.feedback.good{ background:#166534; color:#dcfce7; }
+.feedback.bad{ background:#991b1b; color:#fee2e2; }
+
+/* OVERLAYS */
+.screen{
+    position:fixed; inset:0; z-index:500; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; padding:25px; text-align:center;
+    background:radial-gradient(circle at center, #16446a, #071321 65%, #02070d);
+    transition:opacity .3s, visibility .3s;
+}
+.screen.hidden{ opacity:0; visibility:hidden; pointer-events:none; }
+.globe{ font-size:75px; margin-bottom:10px; }
+.screenTitle{ font-size:clamp(30px,8vw,52px); line-height:1; font-weight:950; }
+.screenSubtitle{ max-width:430px; margin-top:14px; color:var(--muted); font-size:15px; line-height:1.5; }
+
+.playButton{
+    margin-top:25px; padding:15px 45px; border:0; border-radius:50px;
+    background:linear-gradient(135deg, #38bdf8, #0284c7); color:#02111d;
+    font-size:17px; font-weight:950; cursor:pointer;
+    box-shadow:0 10px 30px rgba(14,165,233,.35);
+}
+.playButton:active{ transform:scale(.95); }
+
+.result{
+    position:fixed; inset:0; z-index:800; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; padding:25px; text-align:center;
+    background:radial-gradient(circle, #123b5d, #02070d 75%); opacity:0; pointer-events:none; transition:opacity .3s;
+}
+.result.show{ opacity:1; pointer-events:auto; }
+.trophy{ font-size:70px; animation:float 1.5s ease-in-out infinite; }
+@keyframes float{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-8px); } }
+.resultTitle{ margin-top:8px; color:var(--cyan); font-size:clamp(30px,7vw,50px); font-weight:950; }
+.finalScore{ margin-top:10px; font-size:26px; font-weight:950; }
+.finalText{ margin-top:8px; color:var(--muted); font-size:15px; }
+
+@media(min-aspect-ratio:1/1){
+    .shell{ max-width:1050px; max-height:620px; }
+    .stage{ flex-direction:row; }
+    .flagCard, .answers{ flex:1; height:100%; }
+    .flagBox{ height:200px; }
+    .flag{ max-height:180px; }
+}
+</style>
+</head>
+
+<body>
+
+<div id="startScreen" class="screen">
+    <div class="globe">🌍</div>
+    <h1 class="screenTitle">Flag Rush</h1>
+    <p class="screenSubtitle">Identify 25 world flags. Choose the correct country before moving to the next round.</p>
+    <button id="playButton" class="playButton">PLAY NOW</button>
+</div>
+
+<div id="game">
+    <div class="shell">
+        <header class="hud">
+            <div class="hudItem">
+                <span class="hudLabel">Score</span>
+                <span id="score" class="hudValue">0</span>
+            </div>
+            <div class="hudItem">
+                <span class="hudLabel">Best</span>
+                <span id="best" class="hudValue">0</span>
+            </div>
+            <div class="hudItem">
+                <span class="hudLabel">Round</span>
+                <span id="round" class="hudValue">1/25</span>
+            </div>
+        </header>
+
+        <main class="stage">
+            <section class="flagCard">
+                <div class="flagGlow"></div>
+                <div class="flagBox">
+                    <img id="flag" class="flag" src="" alt="Flag">
+                </div>
+                <p id="question" class="question">Press PLAY NOW</p>
+                <div id="feedback" class="feedback"></div>
+            </section>
+
+            <section class="answers">
+                <button class="answer" data-index="0">Option 1</button>
+                <button class="answer" data-index="1">Option 2</button>
+                <button class="answer" data-index="2">Option 3</button>
+                <button class="answer" data-index="3">Option 4</button>
+            </section>
+        </main>
+    </div>
+</div>
+
+<div id="resultScreen" class="result">
+    <div class="trophy">🏆</div>
+    <h1 class="resultTitle">Quiz Complete!</h1>
+    <div id="finalScore" class="finalScore">Score: 0</div>
+    <div id="finalText" class="finalText">0% correct</div>
+    <button id="againButton" class="playButton">PLAY AGAIN</button>
+</div>
+
+<script>
+"use strict";
+
+const COUNTRIES = [
+    {name:"Pakistan",code:"pk"}, {name:"United States",code:"us"}, {name:"United Kingdom",code:"gb"},
+    {name:"France",code:"fr"}, {name:"Germany",code:"de"}, {name:"Italy",code:"it"},
+    {name:"Spain",code:"es"}, {name:"Japan",code:"jp"}, {name:"China",code:"cn"},
+    {name:"India",code:"in"}, {name:"Canada",code:"ca"}, {name:"Australia",code:"au"},
+    {name:"Brazil",code:"br"}, {name:"Mexico",code:"mx"}, {name:"Turkey",code:"tr"},
+    {name:"Saudi Arabia",code:"sa"}, {name:"United Arab Emirates",code:"ae"}, {name:"Egypt",code:"eg"},
+    {name:"South Korea",code:"kr"}, {name:"Russia",code:"ru"}, {name:"Argentina",code:"ar"},
+    {name:"Portugal",code:"pt"}, {name:"Greece",code:"gr"}, {name:"Thailand",code:"th"},
+    {name:"South Africa",code:"za"}
+];
+
+const TOTAL_ROUNDS = 25;
+let score = 0;
+let best = 0;
+let round = 1;
+let questions = [];
+let currentQuestion = null;
+let locked = true;
+let audioContext = null;
+let isAudioMuted = false;
+
+/* =========================================================
+   YOUTUBE PLAYABLES STORAGE & SDK INTEGRATION
+========================================================= */
+
+function initYTData() {
+    if (window.ytgame && window.ytgame.game && window.ytgame.game.loadData) {
+        window.ytgame.game.loadData().then((data) => {
+            if (data && data.bestScore) {
+                best = data.bestScore;
+                updateHUD();
+            }
+        }).catch(() => loadLocalFallback());
+    } else {
+        loadLocalFallback();
+    }
+}
+
+function loadLocalFallback() {
+    try {
+        const saved = window.localStorage.getItem("flagRushBest");
+        if (saved !== null) best = parseInt(saved, 10) || 0;
+    } catch(e) { best = 0; }
+    updateHUD();
+}
+
+function saveBestScore() {
+    // 1. YouTube SDK Save
+    if (window.ytgame && window.ytgame.game) {
+        if (window.ytgame.game.saveData) {
+            window.ytgame.game.saveData(JSON.stringify({ bestScore: best }));
+        }
+        if (window.ytgame.game.sendScore) {
+            window.ytgame.game.sendScore({ value: score });
+        }
+    }
+    // 2. Local Fallback
+    try { window.localStorage.setItem("flagRushBest", String(best)); } catch(e){}
+}
+
+/* DOM Elements */
+const startScreen = document.getElementById("startScreen");
+const resultScreen = document.getElementById("resultScreen");
+const playButton = document.getElementById("playButton");
+const againButton = document.getElementById("againButton");
+const scoreElement = document.getElementById("score");
+const bestElement = document.getElementById("best");
+const roundElement = document.getElementById("round");
+const flagElement = document.getElementById("flag");
+const questionElement = document.getElementById("question");
+const feedbackElement = document.getElementById("feedback");
+const finalScoreElement = document.getElementById("finalScore");
+const finalTextElement = document.getElementById("finalText");
+const answerButtons = Array.from(document.querySelectorAll(".answer"));
+
+function shuffle(array) {
+    const result = array.slice();
+    for (let i = result.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [result[i], result[j]] = [result[j], result[i]];
+    }
+    return result;
+}
+
+function getFlagURL(code) {
+    return "https://flagcdn.com/w640/" + code + ".png";
+}
+
+function updateHUD() {
+    scoreElement.textContent = String(score);
+    bestElement.textContent = String(best);
+    roundElement.textContent = round + "/" + TOTAL_ROUNDS;
+}
+
+/* AUDIO SYSTEM WITH YT PAUSE BINDINGS */
+function startAudio() {
+    if (isAudioMuted) return;
+    try {
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioContext && audioContext.state === "suspended") {
+            audioContext.resume();
+        }
+    } catch(e) {}
+}
+
+function playTone(frequency, duration, type="sine") {
+    if (!audioContext || isAudioMuted || audioContext.state !== "running") return;
+    try {
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        oscillator.type = type;
+        oscillator.frequency.value = frequency;
+        gain.gain.setValueAtTime(0.055, audioContext.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
+        oscillator.connect(gain);
+        gain.connect(audioContext.destination);
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + duration);
+    } catch(e) {}
+}
+
+function correctSound() { playTone(660, .12); setTimeout(() => playTone(880, .16), 80); }
+function wrongSound() { playTone(170, .22, "sawtooth"); }
+function victorySound() {
+    [523, 659, 784, 1046].forEach((note, i) => {
+        setTimeout(() => playTone(note, .18), i * 100);
+    });
+}
+
+/* GAME LOGIC */
+function loadQuestion() {
+    if (!questions.length) return;
+    currentQuestion = questions[round - 1];
+
+    const wrong = shuffle(COUNTRIES.filter(c => c.name !== currentQuestion.name)).slice(0, 3);
+    const choices = shuffle([currentQuestion, ...wrong]);
+
+    locked = false;
+    flagElement.src = getFlagURL(currentQuestion.code);
+    flagElement.alt = currentQuestion.name + " flag";
+
+    flagElement.style.animation = "none";
+    void flagElement.offsetWidth;
+    flagElement.style.animation = "flagIn .3s ease";
+
+    questionElement.textContent = "Which country does this flag belong to?";
+    feedbackElement.textContent = "";
+    feedbackElement.className = "feedback";
+
+    answerButtons.forEach((button, index) => {
+        button.disabled = false;
+        button.className = "answer";
+        button.textContent = choices[index].name;
+        button.dataset.country = choices[index].name;
+    });
+
+    updateHUD();
+}
+
+function chooseAnswer(button) {
+    if (locked) return;
+    locked = true;
+
+    answerButtons.forEach(btn => btn.disabled = true);
+    const selected = button.dataset.country;
+    const correct = currentQuestion.name;
+
+    if (selected === correct) {
+        score += 100;
+        button.classList.add("correct");
+        feedbackElement.textContent = "✓ CORRECT!";
+        feedbackElement.className = "feedback show good";
+        correctSound();
+    } else {
+        button.classList.add("wrong");
+        const correctButton = answerButtons.find(btn => btn.dataset.country === correct);
+        if (correctButton) correctButton.classList.add("correct");
+        feedbackElement.textContent = "✕ Correct: " + correct;
+        feedbackElement.className = "feedback show bad";
+        wrongSound();
+    }
+
+    if (score > best) {
+        best = score;
+        saveBestScore();
+    }
+
+    updateHUD();
+
+    setTimeout(() => {
+        if (round >= TOTAL_ROUNDS) {
+            endGame();
+        } else {
+            round++;
+            loadQuestion();
+        }
+    }, 850);
+}
+
+function startGame() {
+    startAudio();
+    score = 0;
+    round = 1;
+    locked = true;
+    questions = shuffle(COUNTRIES);
+
+    resultScreen.classList.remove("show");
+    startScreen.classList.add("hidden");
+    updateHUD();
+
+    setTimeout(loadQuestion, 50);
+}
+
+function endGame() {
+    locked = true;
+    victorySound();
+
+    const percentage = Math.round((score / (TOTAL_ROUNDS * 100)) * 100);
+    finalScoreElement.textContent = "Score: " + score;
+    finalTextElement.textContent = percentage + "% correct • 25 flags completed";
+
+    resultScreen.classList.add("show");
+    saveBestScore();
+}
+
+/* EVENT LISTENERS */
+playButton.addEventListener("click", startGame);
+againButton.addEventListener("click", startGame);
+answerButtons.forEach(button => {
+    button.addEventListener("click", () => {
+        startAudio();
+        chooseAnswer(button);
+    });
+});
+
+document.addEventListener("keydown", (e) => {
+    if (locked) return;
+    if (["1","2","3","4"].includes(e.key)) {
+        chooseAnswer(answerButtons[parseInt(e.key, 10) - 1]);
+    }
+});
+
+flagElement.addEventListener("error", () => {
+    flagElement.style.display = "none";
+    questionElement.textContent = "Flag image missing. Connection issue.";
+});
+flagElement.addEventListener("load", () => { flagElement.style.display = "block"; });
+
+/* =========================================================
+   YOUTUBE PLAYABLES LIFECYCLE HANDLERS
+========================================================= */
+
+window.addEventListener("load", () => {
+    initYTData();
+
+    if (window.ytgame && window.ytgame.game) {
+        // 1. First Frame Ready signal
+        if (window.ytgame.game.firstFrameReady) {
+            window.ytgame.game.firstFrameReady();
+        }
+
+        // 2. Pause/Resume Audio lifecycle events
+        if (window.ytgame.game.onPause) {
+            window.ytgame.game.onPause(() => {
+                isAudioMuted = true;
+                if (audioContext && audioContext.state === "running") {
+                    audioContext.suspend();
+                }
+            });
+        }
+
+        if (window.ytgame.game.onResume) {
+            window.ytgame.game.onResume(() => {
+                isAudioMuted = false;
+                if (audioContext && audioContext.state === "suspended") {
+                    audioContext.resume();
+                }
+            });
+        }
+    }
+});
+</script>
+
+</body>
+</html>
